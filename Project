@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Management Tool</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+}
+
+header{
+    background:#4f46e5;
+    color:white;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+}
+
+input, textarea, select{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    border:1px solid #ccc;
+    border-radius:8px;
+}
+
+button{
+    background:#4f46e5;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#4338ca;
+}
+
+.board{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:20px;
+}
+
+.task{
+    border:1px solid #ddd;
+    border-radius:10px;
+    padding:10px;
+    margin-top:10px;
+}
+
+.comment{
+    background:#f3f4f6;
+    padding:5px;
+    border-radius:5px;
+    margin-top:5px;
+}
+
+.hidden{
+    display:none;
+}
+
+.logout{
+    background:red;
+}
+
+.logout:hover{
+    background:darkred;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Project Management Tool</h1>
+    <button id="logoutBtn" class="logout hidden">Logout</button>
+</header>
+
+<div class="container">
+
+    <!-- LOGIN -->
+    <div id="loginSection" class="card">
+        <h2>Login</h2>
+
+        <input type="text" id="username" placeholder="Enter Username">
+
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- APP -->
+    <div id="appSection" class="hidden">
+
+        <!-- CREATE PROJECT -->
+        <div class="card">
+            <h2>Create Group Project</h2>
+
+            <input type="text" id="projectName"
+            placeholder="Project Name">
+
+            <button onclick="createProject()">
+                Create Project
+            </button>
+        </div>
+
+        <!-- PROJECT BOARD -->
+        <div id="projects" class="board"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+let currentUser =
+localStorage.getItem("currentUser") || "";
+
+let projects =
+JSON.parse(localStorage.getItem("projects")) || [];
+
+function saveData(){
+    localStorage.setItem(
+        "projects",
+        JSON.stringify(projects)
+    );
+
+    localStorage.setItem(
+        "currentUser",
+        currentUser
+    );
+}
+
+function login(){
+
+    const username =
+    document.getElementById("username").value.trim();
+
+    if(username===""){
+        alert("Enter username");
+        return;
+    }
+
+    currentUser=username;
+
+    saveData();
+
+    showApp();
+}
+
+function logout(){
+
+    currentUser="";
+
+    localStorage.removeItem("currentUser");
+
+    location.reload();
+}
+
+document.getElementById("logoutBtn")
+.addEventListener("click",logout);
+
+function showApp(){
+
+    document.getElementById("loginSection")
+    .classList.add("hidden");
+
+    document.getElementById("appSection")
+    .classList.remove("hidden");
+
+    document.getElementById("logoutBtn")
+    .classList.remove("hidden");
+
+    renderProjects();
+}
+
+function createProject(){
+
+    const name =
+    document.getElementById("projectName")
+    .value.trim();
+
+    if(name===""){
+        alert("Enter project name");
+        return;
+    }
+
+    projects.push({
+        id:Date.now(),
+        name:name,
+        tasks:[]
+    });
+
+    document.getElementById("projectName").value="";
+
+    saveData();
+
+    renderProjects();
+}
+
+function addTask(projectId){
+
+    const title =
+    document.getElementById(
+        "taskTitle"+projectId
+    ).value.trim();
+
+    const assignee =
+    document.getElementById(
+        "assignee"+projectId
+    ).value.trim();
+
+    if(title===""){
+        alert("Enter task");
+        return;
+    }
+
+    const project=
+    projects.find(p=>p.id===projectId);
+
+    project.tasks.push({
+        id:Date.now(),
+        title:title,
+        assignee:assignee,
+        comments:[]
+    });
+
+    saveData();
+
+    renderProjects();
+}
+
+function addComment(projectId,taskId){
+
+    const text=
+    document.getElementById(
+        "comment"+taskId
+    ).value.trim();
+
+    if(text===""){
+        alert("Enter comment");
+        return;
+    }
+
+    const project=
+    projects.find(p=>p.id===projectId);
+
+    const task=
+    project.tasks.find(t=>t.id===taskId);
+
+    task.comments.push({
+        user:currentUser,
+        text:text
+    });
+
+    saveData();
+
+    renderProjects();
+}
+
+function renderProjects(){
+
+    const container=
+    document.getElementById("projects");
+
+    container.innerHTML="";
+
+    projects.forEach(project=>{
+
+        let html=`
+        <div class="card">
+
+            <h2>${project.name}</h2>
+
+            <input
+            id="taskTitle${project.id}"
+            placeholder="Task Title">
+
+            <input
+            id="assignee${project.id}"
+            placeholder="Assign To">
+
+            <button
+            onclick="addTask(${project.id})">
+
+            Add Task
+
+            </button>
+        `;
+
+        project.tasks.forEach(task=>{
+
+            html+=`
+            <div class="task">
+
+                <strong>${task.title}</strong>
+
+                <p>
+                Assigned To:
+                ${task.assignee || "Unassigned"}
+                </p>
+
+                <h4>Comments</h4>
+            `;
+
+            task.comments.forEach(comment=>{
+
+                html+=`
+                <div class="comment">
+
+                <b>${comment.user}:</b>
+                ${comment.text}
+
+                </div>
+                `;
+            });
+
+            html+=`
+
+                <input
+                id="comment${task.id}"
+                placeholder="Write comment">
+
+                <button
+                onclick="
+                addComment(
+                ${project.id},
+                ${task.id}
+                )">
+
+                Comment
+
+                </button>
+
+            </div>
+            `;
+        });
+
+        html+=`</div>`;
+
+        container.innerHTML+=html;
+    });
+}
+
+if(currentUser!==""){
+    showApp();
+}
+
+</script>
+
+</body>
+</html>
